@@ -5,7 +5,7 @@ type Credentials struct {
 	CompanyUsername string `gorm:"unique"`
 	Name            string
 	TypeID          uint `gorm:"foreignKey:TypeID;references:company_types(id)"`
-	Aim             string
+	// Aim             string
 }
 
 type CompanyTypes struct {
@@ -36,7 +36,7 @@ type Permissions struct {
 type CompanyRoles struct {
 	ID           uint   `gorm:"primaryKey"`
 	CompanyID    string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
-	Roles        string `gorm:"not null"`
+	RoleID       uint   `gorm:"not null"`
 	PermissionID uint   `gorm:"foreignKey:PermissionID;references:permissions(id)"`
 }
 

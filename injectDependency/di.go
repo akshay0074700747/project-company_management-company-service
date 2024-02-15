@@ -13,7 +13,7 @@ func Initialize(cfg config.Config) *services.CompanyEngine {
 	db := db.ConnectDB(cfg)
 	adapter := adapters.NewCompanyAdapter(db)
 	usecase := usecases.NewCompanyUseCases(adapter)
-	server := services.NewProjectServiceServer(usecase)
+	server := services.NewProjectServiceServer(usecase, ":50001")
 
 	return services.NewCompanyEngine(server)
 }
