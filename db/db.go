@@ -29,6 +29,10 @@ func ConnectDB(cfg config.Config) *gorm.DB {
 	db.AutoMigrate(&entities.CompanyMembers{})
 	db.AutoMigrate(&entities.CompanyEmail{})
 	db.AutoMigrate(&entities.CompanyPhone{})
+	db.AutoMigrate(&entities.Owners{})
+	db.AutoMigrate(&entities.MemberStatus{})
+	db.AutoMigrate(&entities.Problems{})
+	db.AutoMigrate(&entities.Visitors{})
 
 	return db
 }

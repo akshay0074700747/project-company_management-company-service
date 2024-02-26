@@ -1,5 +1,7 @@
 package entities
 
+import "time"
+
 type Credentials struct {
 	CompanyID       string `gorm:"primaryKey"`
 	CompanyUsername string `gorm:"unique"`
@@ -44,9 +46,34 @@ type CompanyMembers struct {
 	CompanyID string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
 	MemberID  string `gorm:"not null"`
 	RoleID    uint   `gorm:"foreignKey:RoleID;references:company_roles(id)"`
+	StatusID  uint   `gorm:"foreignKey:StatusID;references:member_statuses(id)"`
+	Salary    int
+}
+
+type MemberStatus struct {
+	ID     uint   `gorm:"primaryKey"`
+	Status string `gorm:"unique"`
 }
 
 type CompanyPhone struct {
 	CompanyID string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
 	Phone     string `gorm:"unique;not null"`
+}
+
+type Owners struct {
+	CompanyID string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
+	OwnerID   string
+}
+
+type Problems struct {
+	ID        uint   `gorm:"primaryKey"`
+	CompanyID string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
+	Problem   string
+	RaisedBy  string
+}
+
+type Visitors struct {
+	CompanyID   string `gorm:"foreignKey:CompanyID;references:credentials(company_id)"`
+	VisitorID   string
+	VisitedTime time.Time
 }
