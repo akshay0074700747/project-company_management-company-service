@@ -3,27 +3,34 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"time"
 
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
 	"github.com/akshay0074700747/project-company_management-company-service/helpers"
 	"github.com/akshay0074700747/project-company_management-company-service/internal/usecases"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/companypb"
+	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/projectpb"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/userpb"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type CompanyServiceServer struct {
-	UserConn userpb.UserServiceClient
-	Usecase  usecases.CompanyUsecaseInterfaces
+	UserConn    userpb.UserServiceClient
+	ProjectConn projectpb.ProjectServiceClient
+	Usecase     usecases.CompanyUsecaseInterfaces
 	companypb.UnimplementedCompanyServiceServer
 }
 
-func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr string) *CompanyServiceServer {
+func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, projectAddr string) *CompanyServiceServer {
 	userRes, _ := helpers.DialGrpc(addr)
+	projectRes, _ := helpers.DialGrpc(projectAddr)
 	return &CompanyServiceServer{
-		Usecase:  usecase,
-		UserConn: userpb.NewUserServiceClient(userRes),
+		Usecase:     usecase,
+		UserConn:    userpb.NewUserServiceClient(userRes),
+		ProjectConn: projectpb.NewProjectServiceClient(projectRes),
 	}
 }
 
@@ -82,6 +89,7 @@ func (comp *CompanyServiceServer) AddEmployees(ctx context.Context, req *company
 		CompanyID: req.CompanyID,
 		RoleID:    uint(req.RoleID),
 		MemberID:  res.UserID,
+		Salary:    int(req.CTC),
 	}); err != nil {
 		helpers.PrintErr(err, "error occured at AddMember usecase")
 		return nil, err
@@ -213,13 +221,17 @@ func (comp *CompanyServiceServer) GetCompanyDetails(ctx context.Context, req *co
 
 func (comp *CompanyServiceServer) GetCompanyEmployees(req *companypb.GetCompanyReq, stream companypb.CompanyService_GetCompanyEmployeesServer) error {
 
-	res,err := comp.Usecase.GetCompanyMembers(req.CompanyID)
+	res, err := comp.Usecase.GetCompanyMembers(req.CompanyID)
 	if err != nil {
 		helpers.PrintErr(err, "error at GetCompanyMembers usecase")
 		return err
 	}
 
 	streeam, err := comp.UserConn.GetStreamofUserDetails(context.TODO())
+	if err != nil {
+		helpers.PrintErr(err, "error at stream GetStreamofUserDetails")
+		return err
+	}
 
 	for i := range res {
 
@@ -238,6 +250,7 @@ func (comp *CompanyServiceServer) GetCompanyEmployees(req *companypb.GetCompanyR
 		}
 
 		if err := stream.Send(&companypb.GetCompanyEmployeesRes{
+			UserId:     details.UserID,
 			Email:      details.Email,
 			Name:       details.Name,
 			Permission: res[i].Permission,
@@ -258,6 +271,27 @@ func (company *CompanyServiceServer) LogintoCompany(ctx context.Context, req *co
 		helpers.PrintErr(err, "error at LogintoCompany usecase")
 		return nil, err
 	}
+
+	isOwnerbool, err := company.Usecase.IsOwner(res.CompanyID, req.UserID)
+	if err != nil {
+		helpers.PrintErr(err, "error at IsOwner usecase")
+		return nil, err
+	}
+
+	fmt.Println(isOwnerbool)
+
+	if isOwnerbool {
+		return &companypb.LogintoCompanyRes{
+			CompanyID:  res.CompanyID,
+			Permission: "ROOT",
+			Role:       "OWNER",
+		}, nil
+	}
+
+	if res.CompanyID == "" || res.Permisssion == "" || res.RoleID == 0 {
+		return nil, errors.New("the compnayusername or memberID is not valid")
+	}
+
 	role, err := company.UserConn.GetRole(ctx, &userpb.GetRoleReq{
 		ID: uint32(res.RoleID),
 	})
@@ -332,10 +366,20 @@ func (company *CompanyServiceServer) GetProblems(req *companypb.GetProblemsReq, 
 		return err
 	}
 
+	var isAssigned bool
 	for _, v := range problems {
+
+		if v.AssignedEmployeeID != "" {
+			isAssigned = true
+		} else {
+			isAssigned = false
+		}
 		if err = stream.Send(&companypb.GetProblemsRes{
-			Problem:  v.Problem,
-			RaisedBy: v.RaisedBy,
+			ProblemID:  uint32(v.ID),
+			Problem:    v.Problem,
+			RaisedBy:   v.RaisedBy,
+			IsResolved: v.IsResolved,
+			IsAssigned: isAssigned,
 		}); err != nil {
 			helpers.PrintErr(err, "error happeded att sending stream")
 			return err
@@ -491,6 +535,649 @@ func (company *CompanyServiceServer) GetVisitors(req *companypb.GetVisitorsReq, 
 			VisitedTime: timestamppb.New(v.VisitedTime),
 		}); err != nil {
 			helpers.PrintErr(err, "error happeded att sending stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (company *CompanyServiceServer) GetPermission(ctx context.Context, req *companypb.GetPermisssionReq) (*companypb.GetPermisssionRes, error) {
+
+	permission, err := company.Usecase.GetPermission(uint(req.ID))
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetPermission usecase")
+		return nil, err
+	}
+
+	return &companypb.GetPermisssionRes{
+		Permission: permission,
+	}, nil
+}
+
+func (comp *CompanyServiceServer) IsEmployeeExists(ctx context.Context, req *companypb.IsEmployeeExistsReq) (*companypb.IsEmployeeExistsRes, error) {
+
+	exists, err := comp.Usecase.IsEmployeeExists(req.EmployeeID, req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at IsEmployeeExists usecase")
+		return nil, err
+	}
+
+	return &companypb.IsEmployeeExistsRes{Exists: exists}, nil
+}
+
+func (company *CompanyServiceServer) AddClient(ctx context.Context, req *companypb.AddClientReq) (*emptypb.Empty, error) {
+
+	details, err := company.UserConn.GetByEmail(ctx, &userpb.GetByEmailReq{
+		Email: req.Email,
+	})
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetByEmail")
+		return nil, err
+	}
+
+	if err := company.Usecase.InsertIntoClients(entities.Clients{
+		ClientID:  details.UserID,
+		CompanyID: req.CompanyID,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at InsertIntoClients usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) AssociateClientWithProject(ctx context.Context, req *companypb.AssociateClientWithProjectReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.AttachClientwithProject(entities.Clients{
+		ClientID:  req.ClientID,
+		CompanyID: req.CompanyID,
+	}, req.ProjectID, uint(req.Contract)); err != nil {
+		helpers.PrintErr(err, "error happened at AttachClientwithProject usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) GetPastProjects(req *companypb.GetProjectsReq, stream companypb.CompanyService_GetPastProjectsServer) error {
+
+	res, err := company.Usecase.GetPastProjects(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetPastProjects usecase")
+		return err
+	}
+
+	streaam, err := company.ProjectConn.GetStreamofProjectDetails(context.TODO())
+
+	for _, v := range res {
+		if err := streaam.Send(&projectpb.GetStreamofProjectDetailsReq{
+			ProjectID: v.ProjectID,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+
+		details, err := streaam.Recv()
+		if err != nil {
+			helpers.PrintErr(err, "error happened at recieving from stream")
+			return err
+		}
+
+		if err := stream.Send(&companypb.GetProjectsRes{
+			ProjectID:   details.ProjectID,
+			Description: details.Aim,
+			ProjectName: details.ProjectUsername,
+			ClientID:    v.ClientID,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (companay *CompanyServiceServer) GetClients(req *companypb.GetClientsReq, stream companypb.CompanyService_GetClientsServer) error {
+
+	res, err := companay.Usecase.GetClients(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetClients usecase")
+		return err
+	}
+
+	streaam, err := companay.UserConn.GetStreamofUserDetails(context.TODO())
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetStreamofUserDetails")
+		return err
+	}
+	for _, v := range res {
+		if err := streaam.Send(&userpb.GetUserDetailsReq{
+			UserID: v.ClientID,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+
+		details, err := streaam.Recv()
+		if err != nil {
+			helpers.PrintErr(err, "error happened at recieving from stream")
+			return err
+		}
+
+		if err = stream.Send(&companypb.GetClientsRes{
+			ClientID:   v.ClientID,
+			ProjectIDs: v.ProjectID,
+			Name:       details.Name,
+			Email:      details.Email,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (company *CompanyServiceServer) GetRevenueGenerated(req *companypb.GetRevenueGeneratedReq, stream companypb.CompanyService_GetRevenueGeneratedServer) error {
+
+	res, err := company.Usecase.GetRevenuesGenerated(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happenened at GetRevenuesGenerated usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetRevenueGeneratedRes{
+			ProjectID: v.ProjectID,
+			ClientID:  v.ClientID,
+			Revenue:   uint32(v.Revenue),
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (company *CompanyServiceServer) UpdateRevenueStatus(ctx context.Context, req *companypb.UpdateRevenueStatusReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.UpdateRevenueStatus(entities.UpdateRevenueStatusUsecase{
+		ProjectID:  req.ProjectID,
+		ClientID:   req.ClientID,
+		IsRecieved: req.IsRecieved,
+		CompanyID:  req.CompanyID,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at UpdateRevenueStatus usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) AttachCompanyPolicies(ctx context.Context, req *companypb.AttachCompanyPoliciesReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.UpdateCompanyPolicies(entities.CompanyPolicies{
+		CompanyID:          req.CompanyID,
+		MaxleavesPerMonth:  req.MaxleavesPerMonth,
+		PayDay:             uint(req.PayDay),
+		WorkingHoursPerday: req.WorkingHoursPerday,
+	}); err != nil {
+		helpers.PrintErr(err, "eroror happeneded at UpdateCompanyPolicies usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) UpdatePaymentStatusofEmployee(ctx context.Context, req *companypb.UpdatePaymentStatusofEmployeeReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.UpdatePayRollofEmployee(entities.PayRoll{
+		CompanyID:     req.CompanyID,
+		EmployeeID:    req.EmployeeID,
+		TransactionID: req.TransactionID,
+		IsPayed:       req.IsPayed,
+	}); err != nil {
+		helpers.PrintErr(err, "eroror happened at UpdatePayRollofEmployee usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) AssignProblem(ctx context.Context, req *companypb.AssignProblemReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.AssignProblemToEmployee(req.EmployeeID, uint(req.ProblemID)); err != nil {
+		helpers.PrintErr(err, "eroro happened at AssignProblemToEmployee usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) ResolveProblem(ctx context.Context, req *companypb.ResolveProblemReq) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.ResolveProblem(uint(req.ProblemID), req.ResolverID); err != nil {
+		helpers.PrintErr(err, "eroro happened at ResolveProblem usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) ApplyForLeave(ctx context.Context, req *companypb.ApplyForLeaveReq) (*emptypb.Empty, error) {
+
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		helpers.PrintErr(err, "error ahppenede at parsing to time")
+		return nil, err
+	}
+
+	if err = company.Usecase.ApplyforLeave(entities.Leaves{
+		EmployeeID:  req.EmployeeID,
+		CompanyID:   req.CompanyID,
+		Date:        date,
+		Description: req.Description,
+	}); err != nil {
+		helpers.PrintErr(err, "eroror happenede at ApplyforLeave usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (company *CompanyServiceServer) GetEmployeeLeaveRequests(req *companypb.GetEmployeeLeaveRequestsReq, stream companypb.CompanyService_GetEmployeeLeaveRequestsServer) error {
+
+	res, err := company.Usecase.GetAppliedLeaves(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetAppliedLeaves usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetEmployeeLeaveRequestsRes{
+			LeaveID:     uint32(v.ID),
+			Date:        v.Date.String(),
+			EmployeeID:  v.EmployeeID,
+			Description: v.Description,
+		}); err != nil {
+			helpers.PrintErr(err, "eroror happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (company *CompanyServiceServer) DecideEmployeeLeave(ctx context.Context, req *companypb.DecideEmployeeLeaveRequest) (*emptypb.Empty, error) {
+
+	if err := company.Usecase.GrantLeave(uint(req.LeaveID), req.IsAllowed); err != nil {
+		helpers.PrintErr(err, "error happened at GrantLeave usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) GetLeaves(req *companypb.GetLeavesReq, stream companypb.CompanyService_GetLeavesServer) error {
+
+	res, err := comp.Usecase.GetLeaves(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happenede at GetLeaves usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetLeavesRes{
+			EmployeeID:  v.EmployeeID,
+			Date:        v.Date.String(),
+			Description: v.Description,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetStreamofClients(stream companypb.CompanyService_GetStreamofClientsServer) error {
+
+	for {
+		req, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			helpers.PrintErr(err, "eroro occured at recieving from stream")
+			return err
+		}
+
+		id, err := comp.Usecase.GetClientID(req.ProjectID)
+		if err != nil {
+			helpers.PrintErr(err, "error happened at GetClientID usecase")
+			return err
+		}
+
+		if err = stream.Send(&companypb.GetStreamofClientsRes{
+			ClientID: id,
+		}); err != nil {
+			helpers.PrintErr(err, "eroro happened at sending to sttream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (project *CompanyServiceServer) PostJobs(ctx context.Context, req *companypb.PostJobsReq) (*emptypb.Empty, error) {
+
+	fmt.Println(req)
+
+	if err := project.Usecase.PostJob(entities.Address{
+		StreetNo:   uint(req.JobLocation.StreetNo),
+		StreetName: req.JobLocation.Street,
+		PinNo:      uint(req.JobLocation.PinNo),
+		District:   req.JobLocation.District,
+		State:      req.JobLocation.State,
+		Nation:     req.JobLocation.Nation,
+	}, entities.Jobs{
+		CompanyID:      req.CompanyID,
+		Role:           req.Role,
+		Vacancy:        req.Vacancy,
+		Description:    req.Description,
+		MinExperiance:  req.MinExperiance,
+		MinExpectedCTC: req.MinExpectedCTC,
+		MaxExpectedCTC: req.MaxExpectedCTC,
+		IsRemote:       req.IsRemote,
+	}); err != nil {
+		helpers.PrintErr(err, "errror happened at PostJobs usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) GetJobsofCompany(req *companypb.GetJobsofCompanyReq, stream companypb.CompanyService_GetJobsofCompanyServer) error {
+
+	res, err := comp.Usecase.GetJobsofCompany(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetJobsofCompany usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err := stream.Send(&companypb.GetJobsofCompanyRes{
+			JobID:               v.JobID,
+			Role:                v.Role,
+			Description:         v.Description,
+			Vacancy:             v.Vacancy,
+			MinExperiance:       v.MinExperiance,
+			MinExpectedCTC:      v.MinExpectedCTC,
+			MaxExpectedCTC:      v.MaxExpectedCTC,
+			IsRemote:            v.IsRemote,
+			TotalPersonsApplied: uint32(v.TotalPersonsApplied),
+		}); err != nil {
+			helpers.PrintErr(err, "eroror happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetJobApplications(req *companypb.GetJobApplicationsReq, stream companypb.CompanyService_GetJobApplicationsServer) error {
+
+	res, err := comp.Usecase.GetApplicationsforJob(req.JobID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetApplicationsforJob usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err := stream.Send(&companypb.GetJobApplicationsRes{
+			ApplicationID:    v.ApplicationID,
+			Name:             v.Name,
+			Email:            v.Email,
+			Mobile:           v.Mobile,
+			ResumeID:         v.ResumeID,
+			HighestEducation: v.HighestEducation,
+			Nationality:      v.Nationality,
+			Experiance:       v.Experiance,
+			CurrentCTC:       v.CurrentCTC,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) ShortlistApplications(ctx context.Context, req *companypb.ShortlistApplicationsReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.ShortlistApplications(req.ApplicationID); err != nil {
+		helpers.PrintErr(err, "error happeed at ShortlistApplications usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) ScheduleInterview(ctx context.Context, req *companypb.ScheduleInterviewReq) (*emptypb.Empty, error) {
+
+	timme, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at parsing")
+		return nil, err
+	}
+
+	if err := comp.Usecase.ScheduleInterviews(entities.ScheduledInterviews{
+		ApplicationID: req.ApplicationID,
+		Date:          timme,
+		Description:   req.Description,
+		Time:          req.Time,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at ScheduleInterviews usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) GetScheduledInterviews(req *companypb.GetScheduledInterviewsReq, stream companypb.CompanyService_GetScheduledInterviewsServer) error {
+
+	res, err := comp.Usecase.GetScheduledInterviews(req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetScheduledInterviews usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetScheduledInterviewsRes{
+			ApplicationID: v.ApplicationID,
+			Date:          v.Date.String(),
+			Description:   v.Description,
+			Time:          v.Time,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetDetailsofApplicationByID(ctx context.Context, req *companypb.GetDetailsofApplicationByIDReq) (*companypb.GetDetailsofApplicationByIDRes, error) {
+
+	res, err := comp.Usecase.GetDetialsodApplicationbyID(req.ApplicationID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetDetialsodApplicationbyID usecase")
+		return nil, err
+	}
+
+	return &companypb.GetDetailsofApplicationByIDRes{
+		ApplicationID:    res.ApplicationID,
+		Name:             res.Name,
+		Email:            res.Email,
+		Mobile:           res.Mobile,
+		ResumeID:         res.ResumeID,
+		HighestEducation: res.HighestEducation,
+		Nationality:      res.Nationality,
+		Experiance:       res.Experiance,
+		CurrentCTC:       res.CurrentCTC,
+	}, nil
+}
+
+func (comp *CompanyServiceServer) GetScheduledInterviewsofUser(req *companypb.GetScheduledInterviewsofUserReq, stream companypb.CompanyService_GetScheduledInterviewsofUserServer) error {
+
+	res, err := comp.Usecase.GetScheduledInterviewsofUser(req.UserID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetScheduledInterviewsofUser usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetScheduledInterviewsofUserRes{
+			ApplicationID: v.ApplicationID,
+			Date:          v.Date.String(),
+			Description:   v.Description,
+			Time:          v.Time,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) RescheduleInterview(ctx context.Context, req *companypb.RescheduleInterviewReq) (*emptypb.Empty, error) {
+
+	dte, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		helpers.PrintErr(err, "erorr happened at parsing")
+		return nil, err
+	}
+
+	if err := comp.Usecase.RescheduleInterview(entities.ScheduledInterviews{
+		ApplicationID: req.ApplicationID,
+		Date:          dte,
+		Description:   req.Description,
+		Time:          req.Time,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at RescheduleInterview usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) GetShortlistedApplications(req *companypb.GetShortlistedApplicationsReq, stream companypb.CompanyService_GetShortlistedApplicationsServer) error {
+
+	res, err := comp.Usecase.GetShortlistedApplications(req.JobID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetShortlistedApplications usecase")
+		return err
+	}
+
+	for _, v := range res {
+
+		if err := stream.Send(&companypb.GetShortlistedApplicationsRes{
+			ApplicationID:    v.ApplicationID,
+			Name:             v.Name,
+			Email:            v.Email,
+			Mobile:           v.Mobile,
+			ResumeID:         v.ResumeID,
+			HighestEducation: v.HighestEducation,
+			Nationality:      v.Nationality,
+			Experiance:       v.Experiance,
+			CurrentCTC:       v.CurrentCTC,
+		}); err != nil {
+			helpers.PrintErr(err, "errror happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetJobs(req *companypb.GetJobsReq, stream companypb.CompanyService_GetJobsServer) error {
+
+	jobs, err := comp.Usecase.GetJobs(req.CompanyID, req.Role)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetJobs usecase")
+		return err
+	}
+
+	for _, v := range jobs {
+
+		if err = stream.Send(&companypb.GetJobsRes{
+			JobID:          v.JobID,
+			CompanyID:      v.CompanyID,
+			Role:           v.Role,
+			Vacancy:        v.Vacancy,
+			Description:    v.Description,
+			MinExperiance:  v.MinExperiance,
+			MinExpectedCTC: v.MinExpectedCTC,
+			MaxExpectedCTC: v.MaxExpectedCTC,
+			IsRemote:       v.IsRemote,
+		}); err != nil {
+			helpers.PrintErr(err, "error happend at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetAllJobApplicationsofUser(req *companypb.GetAllJobApplicationsofUserReq, stream companypb.CompanyService_GetAllJobApplicationsofUserServer) error {
+
+	res, err := comp.Usecase.GetJobApplicationsofUser(req.UserID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetJobApplicationsofUser usecase")
+		return err
+	}
+
+	var status string
+	for _, v := range res {
+
+		if v.IsVerified {
+			status = "ShortListed"
+		} else {
+			status = "Not ShortListed"
+		}
+
+		if err := stream.Send(&companypb.GetAllJobApplicationsofUserRes{
+			ApplicationID: v.ApplicatioID,
+			CompanyID:     v.CompanyID,
+			Role:          v.Role,
+			Status:        status,
+		}); err != nil {
+			helpers.PrintErr(err, "error happened at sending to stream")
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (comp *CompanyServiceServer) GetAssignedProblems(req *companypb.GetAssignedProblemsReq, stream companypb.CompanyService_GetAssignedProblemsServer) error {
+
+	res, err := comp.Usecase.GetAssignedProblems(req.CompanyID, req.UserID)
+	if err != nil {
+		helpers.PrintErr(err, "erorr happened at GetAssignedProblems usecase")
+		return err
+	}
+
+	for _, v := range res {
+		if err = stream.Send(&companypb.GetAssignedProblemsRes{
+			ProblemID: uint32(v.ID),
+			Problem:   v.Problem,
+			RaisedBy:  v.RaisedBy,
+		}); err != nil {
+			helpers.PrintErr(err, "errror happened at sending to stream")
 			return err
 		}
 	}

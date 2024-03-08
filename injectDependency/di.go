@@ -10,10 +10,12 @@ import (
 
 func Initialize(cfg config.Config) *services.CompanyEngine {
 
-	db := db.ConnectDB(cfg)
-	adapter := adapters.NewCompanyAdapter(db)
+	dbb := db.ConnectDB(cfg)
+	minio := db.ConnectMinio(cfg)
+	adapter := adapters.NewCompanyAdapter(dbb,minio)
 	usecase := usecases.NewCompanyUseCases(adapter)
-	server := services.NewProjectServiceServer(usecase, ":50001")
-
+	server := services.NewProjectServiceServer(usecase, ":50001",":50002")
+	go server.StartConsuming()
+	
 	return services.NewCompanyEngine(server)
 }

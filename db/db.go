@@ -8,6 +8,8 @@ import (
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func ConnectDB(cfg config.Config) *gorm.DB {
@@ -33,6 +35,27 @@ func ConnectDB(cfg config.Config) *gorm.DB {
 	db.AutoMigrate(&entities.MemberStatus{})
 	db.AutoMigrate(&entities.Problems{})
 	db.AutoMigrate(&entities.Visitors{})
+	db.AutoMigrate(&entities.Clients{})
+	db.AutoMigrate(&entities.ClientsWithProjects{})
+	db.AutoMigrate(&entities.CompanyPolicies{})
+	db.AutoMigrate(&entities.PayRoll{})
+	db.AutoMigrate(&entities.Leaves{})
+	db.AutoMigrate(&entities.Address{})
+	db.AutoMigrate(&entities.Jobs{})
+	db.AutoMigrate(&entities.JobApplications{})
+	db.AutoMigrate(&entities.ScheduledInterviews{})
 
 	return db
+}
+
+func ConnectMinio(cfg config.Config) *minio.Client {
+	minioClient, err := minio.New(cfg.EndPoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
+		Secure: false,
+	})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return minioClient
 }

@@ -25,6 +25,12 @@ type LogintoCompanyUsecase struct {
 	RoleID      uint
 }
 
+type LogintoCompanyUsecaseTmp struct {
+	CompanyID     string
+	PermisssionID uint
+	RoleID        uint
+}
+
 type ListCompaniesUsecase struct {
 	CompanyID   string
 	Aim         string
@@ -42,4 +48,34 @@ type GetCompanyEmployeesUsecase struct {
 	UserID     string
 	Permission string
 	RoleID     uint
+}
+
+type GetPastProjectsUsecase struct {
+	ClientID  string
+	ProjectID string
+}
+
+type GetClientsUsecase struct {
+	ClientID  string
+	ProjectID []string
+}
+
+type GetRevenueGeneratedUsecase struct {
+	ProjectID string
+	ClientID  string
+	Revenue   uint
+}
+
+type UpdateRevenueStatusUsecase struct {
+	ProjectID  string
+	ClientID   string
+	IsRecieved bool
+	CompanyID  string
+}
+
+type GetJobApplicationsofUserUsecase struct {
+	ApplicatioID string
+	Role         string
+	IsVerified   bool
+	CompanyID    string
 }

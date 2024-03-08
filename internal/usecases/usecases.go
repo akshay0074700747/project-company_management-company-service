@@ -1,12 +1,16 @@
 package usecases
 
 import (
+	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
 	"github.com/akshay0074700747/project-company_management-company-service/helpers"
 	"github.com/akshay0074700747/project-company_management-company-service/internal/adapters"
+	"github.com/minio/minio-go/v7"
 )
 
 type CompanyUseCases struct {
@@ -43,7 +47,7 @@ func (comp *CompanyUseCases) RegisterCompany(req entities.CompanyResUsecase, own
 
 	var resCreds entities.CompanyResUsecase
 
-	resCreds.CompCred, resCreds.Email, resCreds.Phones, resCreds.Address, err = comp.Adapter.InsertCompanyCredentials(req.CompCred, req.Email, req.Phones, req.Address)
+	resCreds.CompCred, resCreds.Email, resCreds.Phones, resCreds.Address, err = comp.Adapter.InsertCompanyCredentials(req.CompCred, req.Email, req.Phones, req.Address, ownerId)
 	if err != nil {
 		helpers.PrintErr(err, "error occured at InsertCompanyCredentials adapter")
 		return resCreds, err
@@ -296,17 +300,21 @@ func (comp *CompanyUseCases) SalaryIncrementofRole(compID string, roleId uint, i
 
 func (comp *CompanyUseCases) LogintoCompany(compUsername, userID string) (entities.LogintoCompanyUsecase, error) {
 
+	fmt.Println(compUsername, userID, " heeereeeeeeeeee")
 	compID, err := comp.Adapter.GetCompanyIDFromName(compUsername)
 	if err != nil {
 		helpers.PrintErr(err, "error happened at GetCompanyIDFromName adapter")
 		return entities.LogintoCompanyUsecase{}, err
 	}
+	fmt.Println(compID, "heeereeeeeeeeusernameeeeeeee")
 
 	res, err := comp.Adapter.LogintoCompany(compID, userID)
 	if err != nil {
 		helpers.PrintErr(err, "error happened at LogintoCompany adapter")
 		return entities.LogintoCompanyUsecase{}, err
 	}
+
+	res.CompanyID = compID
 
 	return res, nil
 }
@@ -316,6 +324,374 @@ func (comp *CompanyUseCases) GetEmployeeLeaderBoard(companyID string) ([]entitie
 	res, err := comp.Adapter.GetEmployeeLeaderBoard(companyID)
 	if err != nil {
 		helpers.PrintErr(err, "error happened at GetEmployeeLeaderBoard adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) IsOwner(user_id, company_id string) (bool, error) {
+
+	res, err := comp.Adapter.IsOwner(company_id, user_id)
+
+	fmt.Println(user_id, company_id, "from is owner")
+	if err != nil {
+		helpers.PrintErr(err, "error happened at IsOwner adapter")
+		return false, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetPermission(id uint) (string, error) {
+
+	permission, err := comp.Adapter.GetPermission(id)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetPermission")
+		return "", err
+	}
+
+	return permission, nil
+}
+
+func (comp *CompanyUseCases) IsEmployeeExists(userID, compID string) (bool, error) {
+
+	res, err := comp.Adapter.IsMemberExists(userID, compID)
+	if err != nil {
+		helpers.PrintErr(err, "errror happened at IsMemberExists adapter")
+		return false, err
+	}
+
+	if !res {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (comp *CompanyUseCases) InsertIntoClients(req entities.Clients) error {
+
+	if err := comp.Adapter.InsertIntoClients(req); err != nil {
+		helpers.PrintErr(err, "error happened at InsertIntoClients")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) AttachClientwithProject(req entities.Clients, projectid string, contract uint) error {
+
+	if err := comp.Adapter.AttachClientwithProject(req, projectid, contract); err != nil {
+		helpers.PrintErr(err, "error happened at AttachClientwithProject usecase")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetPastProjects(companyId string) ([]entities.GetPastProjectsUsecase, error) {
+
+	res, err := comp.Adapter.GetPastProjects(companyId)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetPastProjects usecase")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetClients(compID string) ([]entities.GetClientsUsecase, error) {
+
+	res, err := comp.Adapter.GetClients(compID)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetClients")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetRevenuesGenerated(compID string) ([]entities.GetRevenueGeneratedUsecase, error) {
+
+	res, err := comp.Adapter.GetRevenuesGenerated(compID)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetRevenuesGenerated usecse")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) UpdateRevenueStatus(req entities.UpdateRevenueStatusUsecase) error {
+
+	if err := comp.Adapter.UpdateRevenueStatus(req); err != nil {
+		helpers.PrintErr(err, "error happened at UpdateRevenueStatus usecase")
+		return err
+	}
+
+	return nil
+}
+
+func (company *CompanyUseCases) UpdateCompanyPolicies(req entities.CompanyPolicies) error {
+
+	if err := company.Adapter.UpdateCompanyPolicies(req); err != nil {
+		helpers.PrintErr(err, "eroro happened at UpdateCompanyPolicies usecase")
+		return err
+	}
+
+	return nil
+}
+
+func (company *CompanyUseCases) UpdatePayRollofEmployee(req entities.PayRoll) error {
+
+	if err := company.Adapter.UpdatePayRollofEmployee(req); err != nil {
+		helpers.PrintErr(err, "eroror happeneded at UpdatePayRollofEmployee adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (company *CompanyUseCases) AssignProblemToEmployee(empID string, probID uint) error {
+
+	if err := company.Adapter.AssignProblemToEmployee(empID, probID); err != nil {
+		helpers.PrintErr(err, "eroro happened at AssignProblemToEmployee adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) ResolveProblem(probID uint, resolverID string) error {
+
+	if err := comp.Adapter.ResolveProblem(probID, resolverID); err != nil {
+		helpers.PrintErr(err, "error happended at ResolveProblem usecsae")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) ApplyforLeave(req entities.Leaves) error {
+
+	if err := comp.Adapter.ApplyforLeave(req); err != nil {
+		helpers.PrintErr(err, "error happened at ApplyforLeave adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetAppliedLeaves(compID string) ([]entities.Leaves, error) {
+
+	res, err := comp.Adapter.GetAppliedLeaves(compID)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetAppliedLeaves adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GrantLeave(id uint, isAllowed bool) error {
+
+	if err := comp.Adapter.GrantLeave(id, isAllowed); err != nil {
+		helpers.PrintErr(err, "erorr happened at GrantLeave adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetLeaves(id string) ([]entities.Leaves, error) {
+
+	res, err := comp.Adapter.GetLeaves(id)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetLeaves adpter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetClientID(projectID string) (string, error) {
+
+	id, err := comp.Adapter.GetClientID(projectID)
+	if err != nil {
+		helpers.PrintErr(err, "eroror happened at GetClientID adapter")
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (comp *CompanyUseCases) PostJob(address entities.Address, jobs entities.Jobs) error {
+
+	jobs.JobID = helpers.GenUuid()
+
+	if err := comp.Adapter.PostJob(address, jobs); err != nil {
+		helpers.PrintErr(err, "error hapened at postjob adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) ApplyJob(req entities.JobApplications) error {
+
+	req.ApplicationID = helpers.GenUuid()
+	req.ResumeID = (helpers.GenUuid() + req.FileName)
+	newReader := bytes.NewReader(req.Resume)
+
+	if err := comp.Adapter.InsertResumetoMinio(context.TODO(), req.ResumeID, newReader, newReader.Size(), minio.PutObjectOptions{
+		UserMetadata: map[string]string{
+			"applicationID": req.ApplicationID,
+		},
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at InsertResumetoMinio adapter")
+		return err
+	}
+
+	if err := comp.Adapter.ApplyforJob(req); err != nil {
+		helpers.PrintErr(err, "error happened at ApplyforJob usecase")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetJobsofCompany(compID string) ([]entities.Jobs, error) {
+
+	res, err := comp.Adapter.GetJobsofCompany(compID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetJobsofCompany adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetApplicationsforJob(jobID string) ([]entities.JobApplications, error) {
+
+	res, err := comp.Adapter.GetApplicationsforJob(jobID)
+	if err != nil {
+		helpers.PrintErr(err, "errror happened at GetApplicationsforJob adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) ShortlistApplications(applicationID string) error {
+
+	if err := comp.Adapter.ShortlistApplications(applicationID); err != nil {
+		helpers.PrintErr(err, "error happened at ShortlistApplications adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) ScheduleInterviews(req entities.ScheduledInterviews) error {
+
+	if err := comp.Adapter.ScheduleInterviews(req); err != nil {
+		helpers.PrintErr(err, "eror happened at ScheduleInterviews adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetScheduledInterviews(compID string) ([]entities.ScheduledInterviews, error) {
+
+	res, err := comp.Adapter.GetScheduledInterviews(compID)
+	if err != nil {
+		helpers.PrintErr(err, "eroro happened at GetScheduledInterviews usecase")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetDetialsodApplicationbyID(appID string) (entities.JobApplications, error) {
+
+	res, err := comp.Adapter.GetDetialsodApplicationbyID(appID)
+	if err != nil {
+		helpers.PrintErr(err, "erorr happened at GetDetialsodApplicationbyID adapter")
+		return entities.JobApplications{}, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetScheduledInterviewsofUser(userID string) ([]entities.ScheduledInterviews, error) {
+
+	res, err := comp.Adapter.GetScheduledInterviews(userID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetScheduledInterviews adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) RescheduleInterview(req entities.ScheduledInterviews) error {
+
+	if err := comp.Adapter.RescheduleInterview(req); err != nil {
+		helpers.PrintErr(err, "error happeedne at RescheduleInterview adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) GetShortlistedApplications(jobID string) ([]entities.JobApplications, error) {
+
+	res, err := comp.Adapter.GetShortlistedApplications(jobID)
+	if err != nil {
+		helpers.PrintErr(err, "error happeed at GetShortlistedApplications adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetJobs(companyID, role string) ([]entities.Jobs, error) {
+
+	var cond = make(map[string]interface{})
+
+	if companyID != "" {
+		cond["company_id"] = companyID
+	}
+	if role != "" {
+		cond["role"] = role
+	}
+
+	res, err := comp.Adapter.GetJobs(cond)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetJobs adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetJobApplicationsofUser(userID string) ([]entities.GetJobApplicationsofUserUsecase, error) {
+
+	res, err := comp.Adapter.GetJobApplicationsofUser(userID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetJobApplicationsofUser adapter")
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (comp *CompanyUseCases) GetAssignedProblems(companyID, userID string) ([]entities.Problems, error) {
+
+	res, err := comp.Adapter.GetAssignedProblems(companyID, userID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at GetAssignedProblems")
 		return nil, err
 	}
 
