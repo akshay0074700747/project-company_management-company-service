@@ -61,4 +61,13 @@ type CompanyUsecaseInterfaces interface {
 	GetJobs(string,string) ([]entities.Jobs, error)
 	GetJobApplicationsofUser(string)([]entities.GetJobApplicationsofUserUsecase,error)
 	GetAssignedProblems(string,string) ([]entities.Problems, error)
+	DropCompany(string)(error)
+	EditCompanyDetails(entities.Credentials)(error)
+	EditCompanyEmployees(entities.CompanyMembers)(error)
+	DeleteProblem(uint)(error)
+	EditProblem(entities.Problems)(error)
+	DropClient(entities.Clients)(error)
+	UpdateCompanypolicies(entities.CompanyPolicies)(error)
+	DeleteJob(string)(error)
+	UpdateJob(entities.Jobs)(error)
 }

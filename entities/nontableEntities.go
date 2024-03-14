@@ -79,3 +79,16 @@ type GetJobApplicationsofUserUsecase struct {
 	IsVerified   bool
 	CompanyID    string
 }
+
+type Responce struct {
+	StatusCode int         `json:"StatusCode,omitempty"`
+	Message    string      `json:"Message,omitempty"`
+	Error      error       `json:"Error,omitempty"`
+	Data       interface{} `json:"Data,omitempty"`
+}
+
+type UpdateAssetID struct {
+	TransactionID string `json:"TransactionID"`
+	UserID        string `json:"UserID"`
+	AssetID       string `json:"AssetID"`
+}

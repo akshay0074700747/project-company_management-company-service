@@ -939,3 +939,84 @@ func (comp *CompanyAdapter) GetAssignedProblems(companyID, userID string) ([]ent
 
 	return res, nil
 }
+
+func (comp *CompanyAdapter) DropCompany(compID string) error {
+
+	if err := comp.DB.Unscoped().Delete(&entities.Credentials{}, "company_id = $1", compID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) EditCompanyDetails(req entities.Credentials) error {
+
+	if err := comp.DB.Model(&entities.Credentials{}).Where("company_id = $1", req.CompanyID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) EditCompanyEmployees(req entities.CompanyMembers) error {
+
+	if err := comp.DB.Model(&entities.CompanyMembers{}).Where("company_id = $1 AND member_id = $2", req.CompanyID, req.MemberID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) DeleteProblem(id uint) error {
+
+	if err := comp.DB.Unscoped().Delete(&entities.Problems{}, "id = $1", id).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) EditProblem(req entities.Problems) error {
+
+	if err := comp.DB.Model(&entities.Problems{}).Where("id = $1", req.ID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) DropClient(req entities.Clients) error {
+
+	if err := comp.DB.Unscoped().Delete(&entities.Clients{}, "company_id = $1 AND client_id = $2", req.CompanyID, req.ClientID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) UpdateCompanypolicies(req entities.CompanyPolicies) error {
+
+	if err := comp.DB.Model(&entities.CompanyPolicies{}).Where("company_id = $1", req.CompanyID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) DeleteJob(jobID string) error {
+
+	if err := comp.DB.Unscoped().Delete(&entities.Jobs{}, "job_id = $1", jobID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) UpdateJob(req entities.Jobs) error {
+
+	if err := comp.DB.Model(&entities.Jobs{}).Where("job_id = $1", req.JobID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

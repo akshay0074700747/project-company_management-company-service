@@ -20,14 +20,14 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240308144416-29370a3891b7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
 require (
-	github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240308094245-f73c105d7b51
+	github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240314085325-14e7a2e60fbb
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgpassfile v1.0.0 // indirect

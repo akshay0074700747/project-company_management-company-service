@@ -697,3 +697,93 @@ func (comp *CompanyUseCases) GetAssignedProblems(companyID, userID string) ([]en
 
 	return res, nil
 }
+
+func (comp *CompanyUseCases) DropCompany(compID string) error {
+
+	if err := comp.Adapter.DropCompany(compID); err != nil {
+		helpers.PrintErr(err, "erorr happened at DropCompany adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) EditCompanyDetails(req entities.Credentials) error {
+
+	if err := comp.Adapter.EditCompanyDetails(req); err != nil {
+		helpers.PrintErr(err, "error happenendd at EditCompanyDetails adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) EditCompanyEmployees(req entities.CompanyMembers) error {
+
+	if err := comp.Adapter.EditCompanyEmployees(req); err != nil {
+		helpers.PrintErr(err, "error happenendd at EditCompanyEmployees adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) DeleteProblem(id uint) error {
+
+	if err := comp.Adapter.DeleteProblem(id); err != nil {
+		helpers.PrintErr(err, "error happneed at DeleteProblem adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) EditProblem(req entities.Problems) error {
+
+	if err := comp.Adapter.EditProblem(req); err != nil {
+		helpers.PrintErr(err, "error happenend  at EditProblem adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) DropClient(req entities.Clients) error {
+
+	if err := comp.Adapter.DropClient(req); err != nil {
+		helpers.PrintErr(err, "error happened at DropClient adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) UpdateCompanypolicies(req entities.CompanyPolicies) error {
+
+	if err := comp.Adapter.UpdateCompanypolicies(req); err != nil {
+		helpers.PrintErr(err, "erorro happened at UpdateCompanypolicies adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) DeleteJob(jobID string) error {
+
+	if err := comp.Adapter.DeleteJob(jobID); err != nil {
+		helpers.PrintErr(err, "error happened at DeleteJob adapter")
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyUseCases) UpdateJob(req entities.Jobs) error {
+
+	if err := comp.Adapter.UpdateJob(req); err != nil {
+		helpers.PrintErr(err, "error happened at UpdateJob adapter")
+		return err
+	}
+
+	return nil
+}

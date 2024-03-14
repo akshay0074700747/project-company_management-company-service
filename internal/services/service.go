@@ -1,10 +1,13 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"time"
 
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
@@ -36,6 +39,24 @@ func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, pr
 
 func (auth *CompanyServiceServer) RegisterCompany(ctx context.Context, req *companypb.RegisterCompanyRequest) (*companypb.CompanyResponce, error) {
 
+	url := fmt.Sprintf("http://localhost:50007/transaction/verify?transactionID=%s&&userID=%s", req.TransactionID, req.OwnerID)
+	resStages, err := http.Get(url)
+	if err != nil {
+		helpers.PrintErr(err, "errro happened at calling http method")
+		return nil, err
+	}
+
+	var ress entities.Responce
+	if err := json.NewDecoder(resStages.Body).Decode(&ress); err != nil {
+		helpers.PrintErr(err, "errro happened at decoding the json")
+		return nil, err
+	}
+
+	if !ress.Data.(bool) {
+		helpers.PrintErr(err, "errro happened at decoding the json")
+		return nil, errors.New("the transaction or user id is not valid")
+	}
+
 	res, err := auth.Usecase.RegisterCompany(entities.CompanyResUsecase{
 		CompCred: entities.Credentials{
 			CompanyUsername: req.Companyusername,
@@ -57,6 +78,37 @@ func (auth *CompanyServiceServer) RegisterCompany(ctx context.Context, req *comp
 		helpers.PrintErr(err, "error happened at RegisterCompany usecase")
 		return nil, err
 	}
+
+	go func() {
+
+		var reqq = entities.UpdateAssetID{
+			TransactionID: req.TransactionID,
+			UserID:        req.OwnerID,
+			AssetID:       res.Address.CompanyID,
+		}
+		bytereq, err := json.Marshal(reqq)
+		if err != nil {
+			helpers.PrintErr(err, "error happened at marshaling")
+		}
+		reader := bytes.NewReader(bytereq)
+		req, err := http.NewRequest("PATCH", "http://localhost:50007/transaction/update", reader)
+		if err != nil {
+			fmt.Println("failed to create HTTP request:", err)
+			return
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			fmt.Println("failed to send HTTP request:", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			fmt.Println("unexpected response status code:", resp.StatusCode)
+			return
+		}
+	}()
 
 	return &companypb.CompanyResponce{
 		Name:            res.CompCred.Name,
@@ -1183,4 +1235,127 @@ func (comp *CompanyServiceServer) GetAssignedProblems(req *companypb.GetAssigned
 	}
 
 	return nil
+}
+
+func (comp *CompanyServiceServer) DropCompany(ctx context.Context, req *companypb.DropCompanyReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.DropCompany(req.CompanyID); err != nil {
+		helpers.PrintErr(err, "error happened at DropCompany usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) EditCompanyDetails(ctx context.Context, req *companypb.EditCompanyDetailsReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.EditCompanyDetails(entities.Credentials{
+		Name:            req.Name,
+		CompanyUsername: req.Companyusername,
+		TypeID:          uint(req.TypeID),
+		CompanyID:       req.CompanyID,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at EditCompanyDetails adapter")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) TerminateEmployee(ctx context.Context, req *companypb.TerminateEmployeeReq) (*emptypb.Empty, error) {
+	// redis
+}
+
+func (comp *CompanyServiceServer) EditCompanyEmployees(ctx context.Context, req *companypb.EditCompanyEmployeesReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.EditCompanyEmployees(entities.CompanyMembers{
+		MemberID:  req.EmployeeID,
+		RoleID:    uint(req.RoleID),
+		CompanyID: req.CompanyID,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at EditCompanyEmployees adapter")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) DeleteProblem(ctx context.Context, req *companypb.DeleteProblemReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.DeleteProblem(uint(req.ProblemID)); err != nil {
+		helpers.PrintErr(err, "error happened at DeleteProblem usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) EditProblem(ctx context.Context, req *companypb.EditProblemReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.EditProblem(entities.Problems{
+		ID:      uint(req.ProblemID),
+		Problem: req.Problem,
+	}); err != nil {
+		helpers.PrintErr(err, "error happeende at EditProblem usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) DropClientFromCompany(ctx context.Context, req *companypb.DropClientFromCompanyReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.DropClient(entities.Clients{
+		CompanyID: req.CompanyID,
+		ClientID:  req.ClientID,
+	}); err != nil {
+		helpers.PrintErr(err, "error happeende at DropClient usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) UpdateCompanyPolicies(ctx context.Context, req *companypb.UpdateCompanyPoliciesReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.UpdateCompanypolicies(entities.CompanyPolicies{
+		CompanyID:          req.CompanyID,
+		MaxleavesPerMonth:  req.MaxleavesPerMonth,
+		PayDay:             uint(req.PayDay),
+		WorkingHoursPerday: req.WorkingHoursPerday,
+	}); err != nil {
+		helpers.PrintErr(err, "error happeende at UpdateCompanypolicies usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) DeleteJob(ctx context.Context, req *companypb.DeleteJobReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.DeleteJob(req.JobID); err != nil {
+		helpers.PrintErr(err, "error happened at DeleteJob usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) UpdateJob(ctx context.Context, req *companypb.UpdateJobReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.UpdateJob(entities.Jobs{
+		JobID:          req.JobID,
+		Role:           req.Role,
+		Vacancy:        req.Vacancy,
+		Description:    req.Description,
+		MinExperiance:  req.MinExperiance,
+		MinExpectedCTC: req.MaxExpectedCTC,
+		MaxExpectedCTC: req.MaxExpectedCTC,
+		IsRemote:       req.IsRemote,
+	}); err != nil {
+		helpers.PrintErr(err, "error happened at UpdateJob usecase")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
 }
