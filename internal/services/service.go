@@ -13,6 +13,7 @@ import (
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
 	"github.com/akshay0074700747/project-company_management-company-service/helpers"
 	"github.com/akshay0074700747/project-company_management-company-service/internal/usecases"
+	"github.com/akshay0074700747/project-company_management-company-service/notify"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/companypb"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/projectpb"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/userpb"
@@ -159,6 +160,17 @@ func (comp *CompanyServiceServer) AddEmployees(ctx context.Context, req *company
 		helpers.PrintErr(err, "error occured at AddMember usecase")
 		return nil, err
 	}
+
+	go func() {
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been added to the company,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(comp.Producer, comp.Topic, req.Email, message)
+
+	}()
 
 	return &emptypb.Empty{}, nil
 }
@@ -544,6 +556,24 @@ func (company *CompanyServiceServer) SalaryIncrementofEmployee(ctx context.Conte
 		return nil, err
 	}
 
+	go func() {
+
+		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+			UserID: req.EmployeeID,
+		})
+		if err != nil {
+			helpers.PrintErr(err, "error happened atsending email")
+		}
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been Got a Salary increment,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(company.Producer, company.Topic, details.Email, message)
+
+	}()
+
 	return &emptypb.Empty{}, nil
 }
 
@@ -649,6 +679,17 @@ func (company *CompanyServiceServer) AddClient(ctx context.Context, req *company
 		return nil, err
 	}
 
+	go func() {
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been added to a company as client,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(company.Producer, company.Topic, req.Email, message)
+
+	}()
+
 	return &emptypb.Empty{}, nil
 }
 
@@ -661,6 +702,24 @@ func (company *CompanyServiceServer) AssociateClientWithProject(ctx context.Cont
 		helpers.PrintErr(err, "error happened at AttachClientwithProject usecase")
 		return nil, err
 	}
+
+	go func() {
+
+		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+			UserID: req.ClientID,
+		})
+		if err != nil {
+			helpers.PrintErr(err, "error happened atsending email")
+		}
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been associated with a project,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(company.Producer, company.Topic, details.Email, message)
+
+	}()
 
 	return &emptypb.Empty{}, nil
 }
@@ -808,6 +867,24 @@ func (company *CompanyServiceServer) UpdatePaymentStatusofEmployee(ctx context.C
 		return nil, err
 	}
 
+	go func() {
+
+		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+			UserID: req.EmployeeID,
+		})
+		if err != nil {
+			helpers.PrintErr(err, "error happened atsending email")
+		}
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"Your Payment status has been updated,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(company.Producer, company.Topic, details.Email, message)
+
+	}()
+
 	return &emptypb.Empty{}, nil
 }
 
@@ -817,6 +894,24 @@ func (company *CompanyServiceServer) AssignProblem(ctx context.Context, req *com
 		helpers.PrintErr(err, "eroro happened at AssignProblemToEmployee usecase")
 		return nil, err
 	}
+
+	go func() {
+
+		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+			UserID: req.EmployeeID,
+		})
+		if err != nil {
+			helpers.PrintErr(err, "error happened atsending email")
+		}
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been assigned with a problem to resolve,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(company.Producer, company.Topic, details.Email, message)
+
+	}()
 
 	return &emptypb.Empty{}, nil
 }
@@ -1285,6 +1380,24 @@ func (comp *CompanyServiceServer) TerminateEmployee(ctx context.Context, req *co
 	if err := comp.Cache.Del(ctx, req.CompanyID+" "+req.EmployeeID).Err(); err != nil {
 		helpers.PrintErr(err, "eroror happened at clearing cache")
 	}
+
+	go func() {
+
+		details, err := comp.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+			UserID: req.EmployeeID,
+		})
+		if err != nil {
+			helpers.PrintErr(err, "error happened atsending email")
+		}
+
+		message := "Subject: Notifications\r\n" +
+			"\r\n" +
+			"You have been terminated from the company,\r\n" +
+			"\r\n"
+
+		notify.NotifyEmailService(comp.Producer, comp.Topic, details.Email, message)
+
+	}()
 
 	return &emptypb.Empty{}, nil
 }
