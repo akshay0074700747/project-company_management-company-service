@@ -191,7 +191,7 @@ func (comp *CompanyAdapter) AddMember(req entities.CompanyMembers) error {
 
 func (comp *CompanyAdapter) IsMemberExists(id string, compID string) (bool, error) {
 
-	query := "SELECT * FROM company_members WHERE member_id = $1 AND company_id = $2"
+	query := "SELECT * FROM company_members INNER JOIN member_statuses ON status_id = id AND status != 'TERMINATED' WHERE member_id = $1 AND company_id = $2"
 
 	res := comp.DB.Exec(query, id, compID)
 	if res.Error != nil {
@@ -1015,6 +1015,16 @@ func (comp *CompanyAdapter) DeleteJob(jobID string) error {
 func (comp *CompanyAdapter) UpdateJob(req entities.Jobs) error {
 
 	if err := comp.DB.Model(&entities.Jobs{}).Where("job_id = $1", req.JobID).Updates(req).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) TerminateEmployee(userID, companyID string) error {
+
+	query := "UPDATE company_members SET status_id = (SELECT id FROM member_statuses WHERE status = 'TERMINATED') WHERE member_id = $1 AND company_id = $2"
+	if err := comp.DB.Exec(query).Error; err != nil {
 		return err
 	}
 

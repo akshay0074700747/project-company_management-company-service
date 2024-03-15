@@ -8,7 +8,10 @@ require (
 )
 
 require (
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
@@ -20,14 +23,15 @@ require (
 	github.com/rs/xid v1.5.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
 
 require (
-	github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240314085325-14e7a2e60fbb
+	github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240315064300-bddfbd253fbf
+	github.com/akshay0074700747/proto-files-for-microservices v0.0.0-20240121071159-078ee7877b73
 	github.com/confluentinc/confluent-kafka-go v1.9.2
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgpassfile v1.0.0 // indirect

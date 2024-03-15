@@ -787,3 +787,13 @@ func (comp *CompanyUseCases) UpdateJob(req entities.Jobs) error {
 
 	return nil
 }
+
+func (comp *CompanyUseCases) TerminateEmployee(userID, companyID string) error {
+
+	if err := comp.Adapter.TerminateEmployee(userID, companyID); err != nil {
+		helpers.PrintErr(err, "error happenend at TerminateEmployee adapter")
+		return err
+	}
+
+	return nil
+}

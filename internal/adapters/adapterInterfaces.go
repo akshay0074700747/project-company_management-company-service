@@ -82,4 +82,5 @@ type CompanyAdapterInterfaces interface {
 	UpdateCompanypolicies(entities.CompanyPolicies)(error)
 	DeleteJob(string)(error)
 	UpdateJob(entities.Jobs)(error)
+	TerminateEmployee(string,string)(error)
 }

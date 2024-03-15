@@ -16,6 +16,8 @@ import (
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/companypb"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/projectpb"
 	"github.com/akshay0074700747/projectandCompany_management_protofiles/pb/userpb"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/go-redis/redis/v8"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -25,15 +27,26 @@ type CompanyServiceServer struct {
 	ProjectConn projectpb.ProjectServiceClient
 	Usecase     usecases.CompanyUsecaseInterfaces
 	companypb.UnimplementedCompanyServiceServer
+	Producer *kafka.Producer
+	Topic    string
+	Cache    *redis.Client
 }
 
-func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, projectAddr string) *CompanyServiceServer {
+func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, projectAddr, topic string, prod *kafka.Producer) *CompanyServiceServer {
 	userRes, _ := helpers.DialGrpc(addr)
 	projectRes, _ := helpers.DialGrpc(projectAddr)
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379", // Redis server address
+		Password: "",               // No password set
+		DB:       0,                // Use default DB
+	})
 	return &CompanyServiceServer{
 		Usecase:     usecase,
 		UserConn:    userpb.NewUserServiceClient(userRes),
 		ProjectConn: projectpb.NewProjectServiceClient(projectRes),
+		Topic:       topic,
+		Producer:    prod,
+		Cache:       rdb,
 	}
 }
 
@@ -1263,7 +1276,17 @@ func (comp *CompanyServiceServer) EditCompanyDetails(ctx context.Context, req *c
 }
 
 func (comp *CompanyServiceServer) TerminateEmployee(ctx context.Context, req *companypb.TerminateEmployeeReq) (*emptypb.Empty, error) {
-	// redis
+
+	if err := comp.Usecase.TerminateEmployee(req.EmployeeID, req.CompanyID); err != nil {
+		helpers.PrintErr(err, "erorr happened at TerminateEmployee usecase")
+		return nil, err
+	}
+
+	if err := comp.Cache.Del(ctx, req.CompanyID+" "+req.EmployeeID).Err(); err != nil {
+		helpers.PrintErr(err, "eroror happened at clearing cache")
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 func (comp *CompanyServiceServer) EditCompanyEmployees(ctx context.Context, req *companypb.EditCompanyEmployeesReq) (*emptypb.Empty, error) {
@@ -1358,4 +1381,36 @@ func (comp *CompanyServiceServer) UpdateJob(ctx context.Context, req *companypb.
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+func (comp *CompanyServiceServer) GetUserStat(ctx context.Context, req *companypb.GetUserStatReq) (*companypb.GetUserStatRes, error) {
+
+	res, err := comp.Usecase.IsEmployeeExists(req.UserID, req.CompanyID)
+	if err != nil {
+		helpers.PrintErr(err, "error happened at IsEmployeeExists usecase")
+		return nil, err
+	}
+
+	if !res {
+
+		ress, err := comp.Usecase.IsOwner(req.UserID, req.CompanyID)
+		if err != nil {
+			helpers.PrintErr(err, "error happened at IsOwner usecase")
+			return nil, err
+		}
+
+		if !ress {
+			return &companypb.GetUserStatRes{
+				IsAcceptable: false,
+			}, nil
+		}
+		return &companypb.GetUserStatRes{
+			IsAcceptable: true,
+		}, nil
+
+	}
+
+	return &companypb.GetUserStatRes{
+		IsAcceptable: true,
+	}, nil
 }
