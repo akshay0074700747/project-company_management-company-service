@@ -33,7 +33,7 @@ type CompanyServiceServer struct {
 	Cache    *redis.Client
 }
 
-func NewProjectServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, projectAddr, topic string, prod *kafka.Producer) *CompanyServiceServer {
+func NewCompanyServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, projectAddr, topic string, prod *kafka.Producer) *CompanyServiceServer {
 	userRes, _ := helpers.DialGrpc(addr)
 	projectRes, _ := helpers.DialGrpc(projectAddr)
 	rdb := redis.NewClient(&redis.Options{
@@ -58,6 +58,11 @@ func (auth *CompanyServiceServer) RegisterCompany(ctx context.Context, req *comp
 	if err != nil {
 		helpers.PrintErr(err, "errro happened at calling http method")
 		return nil, err
+	}
+
+	if resStages.StatusCode != 200 {
+		helpers.PrintErr(err, "errro happened at the http method")
+		return nil, errors.New("the user is not payed")
 	}
 
 	var ress entities.Responce
@@ -349,7 +354,7 @@ func (company *CompanyServiceServer) LogintoCompany(ctx context.Context, req *co
 		return nil, err
 	}
 
-	isOwnerbool, err := company.Usecase.IsOwner(res.CompanyID, req.UserID)
+	isOwnerbool, err := company.Usecase.IsOwner(req.UserID, res.CompanyID)
 	if err != nil {
 		helpers.PrintErr(err, "error at IsOwner usecase")
 		return nil, err
@@ -1377,13 +1382,13 @@ func (comp *CompanyServiceServer) TerminateEmployee(ctx context.Context, req *co
 		return nil, err
 	}
 
-	if err := comp.Cache.Del(ctx, req.CompanyID+" "+req.EmployeeID).Err(); err != nil {
+	if err := comp.Cache.Del(ctx, req.CompanyID+"_"+req.EmployeeID).Err(); err != nil {
 		helpers.PrintErr(err, "eroror happened at clearing cache")
 	}
 
 	go func() {
 
-		details, err := comp.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+		details, err := comp.UserConn.GetUserDetails(context.TODO(), &userpb.GetUserDetailsReq{
 			UserID: req.EmployeeID,
 		})
 		if err != nil {

@@ -951,7 +951,7 @@ func (comp *CompanyAdapter) DropCompany(compID string) error {
 
 func (comp *CompanyAdapter) EditCompanyDetails(req entities.Credentials) error {
 
-	if err := comp.DB.Model(&entities.Credentials{}).Where("company_id = $1", req.CompanyID).Updates(req).Error; err != nil {
+	if err := comp.DB.Model(&entities.Credentials{}).Where("company_id = ?", req.CompanyID).Updates(req).Error; err != nil {
 		return err
 	}
 
@@ -996,7 +996,7 @@ func (comp *CompanyAdapter) DropClient(req entities.Clients) error {
 
 func (comp *CompanyAdapter) UpdateCompanypolicies(req entities.CompanyPolicies) error {
 
-	if err := comp.DB.Model(&entities.CompanyPolicies{}).Where("company_id = $1", req.CompanyID).Updates(req).Error; err != nil {
+	if err := comp.DB.Model(&entities.CompanyPolicies{}).Where("company_id = ?", req.CompanyID).Updates(req).Error; err != nil {
 		return err
 	}
 
@@ -1024,7 +1024,7 @@ func (comp *CompanyAdapter) UpdateJob(req entities.Jobs) error {
 func (comp *CompanyAdapter) TerminateEmployee(userID, companyID string) error {
 
 	query := "UPDATE company_members SET status_id = (SELECT id FROM member_statuses WHERE status = 'TERMINATED') WHERE member_id = $1 AND company_id = $2"
-	if err := comp.DB.Exec(query).Error; err != nil {
+	if err := comp.DB.Exec(query,userID,companyID).Error; err != nil {
 		return err
 	}
 

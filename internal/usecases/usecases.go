@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/akshay0074700747/project-company_management-company-service/entities"
@@ -300,13 +299,15 @@ func (comp *CompanyUseCases) SalaryIncrementofRole(compID string, roleId uint, i
 
 func (comp *CompanyUseCases) LogintoCompany(compUsername, userID string) (entities.LogintoCompanyUsecase, error) {
 
-	fmt.Println(compUsername, userID, " heeereeeeeeeeee")
 	compID, err := comp.Adapter.GetCompanyIDFromName(compUsername)
 	if err != nil {
 		helpers.PrintErr(err, "error happened at GetCompanyIDFromName adapter")
 		return entities.LogintoCompanyUsecase{}, err
 	}
-	fmt.Println(compID, "heeereeeeeeeeusernameeeeeeee")
+
+	if compID == "" {
+		return entities.LogintoCompanyUsecase{}, errors.New("the company username is not valid")
+	}
 
 	res, err := comp.Adapter.LogintoCompany(compID, userID)
 	if err != nil {
@@ -332,9 +333,8 @@ func (comp *CompanyUseCases) GetEmployeeLeaderBoard(companyID string) ([]entitie
 
 func (comp *CompanyUseCases) IsOwner(user_id, company_id string) (bool, error) {
 
-	res, err := comp.Adapter.IsOwner(company_id, user_id)
+	res, err := comp.Adapter.IsOwner(user_id, company_id)
 
-	fmt.Println(user_id, company_id, "from is owner")
 	if err != nil {
 		helpers.PrintErr(err, "error happened at IsOwner adapter")
 		return false, err
@@ -370,6 +370,12 @@ func (comp *CompanyUseCases) IsEmployeeExists(userID, compID string) (bool, erro
 }
 
 func (comp *CompanyUseCases) InsertIntoClients(req entities.Clients) error {
+
+	if req.ClientID == "" {
+		return errors.New("the clientID cannot be empty")
+	} else if req.CompanyID == "" {
+		return errors.New("the companyID cannot be empty")
+	}
 
 	if err := comp.Adapter.InsertIntoClients(req); err != nil {
 		helpers.PrintErr(err, "error happened at InsertIntoClients")
@@ -454,6 +460,10 @@ func (company *CompanyUseCases) UpdatePayRollofEmployee(req entities.PayRoll) er
 
 func (company *CompanyUseCases) AssignProblemToEmployee(empID string, probID uint) error {
 
+	if empID == "" {
+		return errors.New("the employeeID cannot be empty")
+	}
+
 	if err := company.Adapter.AssignProblemToEmployee(empID, probID); err != nil {
 		helpers.PrintErr(err, "eroro happened at AssignProblemToEmployee adapter")
 		return err
@@ -473,6 +483,10 @@ func (comp *CompanyUseCases) ResolveProblem(probID uint, resolverID string) erro
 }
 
 func (comp *CompanyUseCases) ApplyforLeave(req entities.Leaves) error {
+
+	if req.EmployeeID == "" || req.CompanyID == "" {
+		return errors.New("the userID or companyID is empty")
+	}
 
 	if err := comp.Adapter.ApplyforLeave(req); err != nil {
 		helpers.PrintErr(err, "error happened at ApplyforLeave adapter")
@@ -527,6 +541,10 @@ func (comp *CompanyUseCases) GetClientID(projectID string) (string, error) {
 
 func (comp *CompanyUseCases) PostJob(address entities.Address, jobs entities.Jobs) error {
 
+	if jobs.CompanyID == "" {
+		return errors.New("the compantID cannot be empty")
+	}
+
 	jobs.JobID = helpers.GenUuid()
 
 	if err := comp.Adapter.PostJob(address, jobs); err != nil {
@@ -538,6 +556,10 @@ func (comp *CompanyUseCases) PostJob(address entities.Address, jobs entities.Job
 }
 
 func (comp *CompanyUseCases) ApplyJob(req entities.JobApplications) error {
+
+	if req.UserID == "" || req.JobID == "" {
+		return errors.New("the userID or projectID cannot be empty")
+	}
 
 	req.ApplicationID = helpers.GenUuid()
 	req.ResumeID = (helpers.GenUuid() + req.FileName)

@@ -15,7 +15,7 @@ func Initialize(cfg config.Config) *services.CompanyEngine {
 	minio := db.ConnectMinio(cfg)
 	adapter := adapters.NewCompanyAdapter(dbb, minio)
 	usecase := usecases.NewCompanyUseCases(adapter)
-	server := services.NewProjectServiceServer(usecase, ":50001", ":50002", "Emailsender", notify.InitEmailNotifier())
+	server := services.NewCompanyServiceServer(usecase, ":50001", ":50002", "Emailsender", notify.InitEmailNotifier())
 	go server.StartConsuming()
 
 	return services.NewCompanyEngine(server)
