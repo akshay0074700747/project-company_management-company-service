@@ -563,7 +563,7 @@ func (company *CompanyServiceServer) SalaryIncrementofEmployee(ctx context.Conte
 
 	go func() {
 
-		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+		details, err := company.UserConn.GetUserDetails(context.TODO(), &userpb.GetUserDetailsReq{
 			UserID: req.EmployeeID,
 		})
 		if err != nil {
@@ -710,7 +710,7 @@ func (company *CompanyServiceServer) AssociateClientWithProject(ctx context.Cont
 
 	go func() {
 
-		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+		details, err := company.UserConn.GetUserDetails(context.TODO(), &userpb.GetUserDetailsReq{
 			UserID: req.ClientID,
 		})
 		if err != nil {
@@ -874,7 +874,7 @@ func (company *CompanyServiceServer) UpdatePaymentStatusofEmployee(ctx context.C
 
 	go func() {
 
-		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+		details, err := company.UserConn.GetUserDetails(context.TODO(), &userpb.GetUserDetailsReq{
 			UserID: req.EmployeeID,
 		})
 		if err != nil {
@@ -902,7 +902,7 @@ func (company *CompanyServiceServer) AssignProblem(ctx context.Context, req *com
 
 	go func() {
 
-		details, err := company.UserConn.GetUserDetails(ctx, &userpb.GetUserDetailsReq{
+		details, err := company.UserConn.GetUserDetails(context.TODO(), &userpb.GetUserDetailsReq{
 			UserID: req.EmployeeID,
 		})
 		if err != nil {

@@ -930,7 +930,7 @@ func (comp *CompanyAdapter) GetJobApplicationsofUser(userID string) ([]entities.
 
 func (comp *CompanyAdapter) GetAssignedProblems(companyID, userID string) ([]entities.Problems, error) {
 
-	query := "SELECT * FROM problems WHERE company_id = $1 AND assigned_employee_id = $2 AND is_resolved = false"
+	query := "SELECT * FROM problems WHERE company_id = $1 AND assigned_employee_id = $2"
 	var res []entities.Problems
 
 	if err := comp.DB.Raw(query, companyID, userID).Scan(&res).Error; err != nil {
