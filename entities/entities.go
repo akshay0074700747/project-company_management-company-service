@@ -7,6 +7,8 @@ type Credentials struct {
 	CompanyUsername string `gorm:"unique"`
 	Name            string
 	TypeID          uint `gorm:"foreignKey:TypeID;references:company_types(id);constraint:OnDelete:CASCADE"`
+	IsPayed         bool `gorm:"default:false"`
+	NextPaymentAt       time.Time
 	// Aim             string
 }
 

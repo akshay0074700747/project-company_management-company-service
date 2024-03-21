@@ -60,6 +60,8 @@ github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240
 github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240314085325-14e7a2e60fbb/go.mod h1:ha0hWcBD7MAUTiZOnLbec17eqFtMDdfr3d7rpORXhWo=
 github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240315064300-bddfbd253fbf h1:09/85rgaShSUJ1ZNBQ2G0QfL3AKZJxZ+McH2K014jm0=
 github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240315064300-bddfbd253fbf/go.mod h1:ha0hWcBD7MAUTiZOnLbec17eqFtMDdfr3d7rpORXhWo=
+github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240320112615-6f819f70ba91 h1:BJ7WUht7D2iVPj3QPqeEK2w/TqabBRJnp7l5PO0GcXk=
+github.com/akshay0074700747/projectandCompany_management_protofiles v0.0.0-20240320112615-6f819f70ba91/go.mod h1:ha0hWcBD7MAUTiZOnLbec17eqFtMDdfr3d7rpORXhWo=
 github.com/akshay0074700747/proto-files-for-microservices v0.0.0-20240121071159-078ee7877b73 h1:JK+rWeIiV0Asy/duls1tMwPAXMPwOmFVh0dWCCXLbho=
 github.com/akshay0074700747/proto-files-for-microservices v0.0.0-20240121071159-078ee7877b73/go.mod h1:G3qAPCS68hc3pJYn/AKvFDTivuyaSzNFHSm5s2O+e58=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
@@ -323,6 +325,8 @@ google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 h1:
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7/go.mod h1:WtryC6hu0hhx87FDGxWCDptyssuo68sk10vYjF+T9fY=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c h1:lfpJ/2rWPa/kJgxyyXM8PrNnfCzcmxJ265mADgwmvLI=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240314234333-6e1732d8331c/go.mod h1:WtryC6hu0hhx87FDGxWCDptyssuo68sk10vYjF+T9fY=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 h1:NnYq6UN9ReLM9/Y01KWNOWyI5xQ9kbIms5GGJVwS/Yc=
+google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237/go.mod h1:WtryC6hu0hhx87FDGxWCDptyssuo68sk10vYjF+T9fY=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=

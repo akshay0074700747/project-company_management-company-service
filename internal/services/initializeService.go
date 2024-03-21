@@ -19,7 +19,9 @@ func NewCompanyEngine(srv companypb.CompanyServiceServer) *CompanyEngine {
 }
 func (engine *CompanyEngine) Start(addr string) {
 
-	server := grpc.NewServer()
+	server := grpc.NewServer(
+	// grpc.UnaryInterceptor(intersceptors.UnaryInterscaptor),
+	)
 	companypb.RegisterCompanyServiceServer(server, engine.Srv)
 
 	listener, err := net.Listen("tcp", addr)

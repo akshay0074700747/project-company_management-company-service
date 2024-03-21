@@ -12,7 +12,7 @@ import (
 
 	entities "github.com/akshay0074700747/project-company_management-company-service/entities"
 	gomock "github.com/golang/mock/gomock"
-	v7 "github.com/minio/minio-go/v7"
+	minio "github.com/minio/minio-go/v7"
 )
 
 // MockCompanyAdapterInterfaces is a mock of CompanyAdapterInterfaces interface.
@@ -803,7 +803,7 @@ func (mr *MockCompanyAdapterInterfacesMockRecorder) InsertPhone(arg0 interface{}
 }
 
 // InsertResumetoMinio mocks base method.
-func (m *MockCompanyAdapterInterfaces) InsertResumetoMinio(ctx context.Context, fileName string, reader io.Reader, objectSize int64, opts v7.PutObjectOptions) error {
+func (m *MockCompanyAdapterInterfaces) InsertResumetoMinio(ctx context.Context, fileName string, reader io.Reader, objectSize int64, opts minio.PutObjectOptions) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InsertResumetoMinio", ctx, fileName, reader, objectSize, opts)
 	ret0, _ := ret[0].(error)
@@ -1029,6 +1029,20 @@ func (m *MockCompanyAdapterInterfaces) TerminateEmployee(arg0, arg1 string) erro
 func (mr *MockCompanyAdapterInterfacesMockRecorder) TerminateEmployee(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateEmployee", reflect.TypeOf((*MockCompanyAdapterInterfaces)(nil).TerminateEmployee), arg0, arg1)
+}
+
+// ToggleIsPayed mocks base method.
+func (m *MockCompanyAdapterInterfaces) ToggleIsPayed(arg0 string, arg1 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ToggleIsPayed", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ToggleIsPayed indicates an expected call of ToggleIsPayed.
+func (mr *MockCompanyAdapterInterfacesMockRecorder) ToggleIsPayed(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToggleIsPayed", reflect.TypeOf((*MockCompanyAdapterInterfaces)(nil).ToggleIsPayed), arg0, arg1)
 }
 
 // UpdateCompanyPolicies mocks base method.

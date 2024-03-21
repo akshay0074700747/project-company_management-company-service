@@ -180,7 +180,18 @@ func (comp *CompanyAdapter) AttachCompanyRoleAndPermissions(req entities.Company
 
 func (comp *CompanyAdapter) AddMember(req entities.CompanyMembers) error {
 
-	query := "INSERT INTO company_members (company_id,role_id,member_id,status_id,salary) VALUES($1,$2,$3,(SELECT id FROM member_statuses WHERE status = 'LIVE'),$4)"
+	query := "SELECT is_payed FROM credentials WHERE company_id = $1"
+	var check bool
+
+	if err := comp.DB.Raw(query, req.CompanyID).Scan(&check).Error; err != nil {
+		return err
+	}
+
+	if !check {
+		return errors.New("you havent payed yet..")
+	}
+
+	query = "INSERT INTO company_members (company_id,role_id,member_id,status_id,salary) VALUES($1,$2,$3,(SELECT id FROM member_statuses WHERE status = 'LIVE'),$4)"
 
 	if err := comp.DB.Exec(query, req.CompanyID, req.RoleID, req.MemberID, req.Salary).Error; err != nil {
 		return err
@@ -535,7 +546,18 @@ func (comp *CompanyAdapter) GetPermission(id uint) (string, error) {
 
 func (comp *CompanyAdapter) InsertIntoClients(req entities.Clients) error {
 
-	query := "INSERT INTO clients (client_id,company_id) VALUES($1,$2)"
+	query := "SELECT is_payed FROM credentials WHERE company_id = $1"
+	var check bool
+
+	if err := comp.DB.Raw(query, req.CompanyID).Scan(&check).Error; err != nil {
+		return err
+	}
+
+	if !check {
+		return errors.New("you havent payed yet")
+	}
+
+	query = "INSERT INTO clients (client_id,company_id) VALUES($1,$2)"
 	if err := comp.DB.Exec(query, req.ClientID, req.CompanyID).Error; err != nil {
 		return err
 	}
@@ -1024,7 +1046,17 @@ func (comp *CompanyAdapter) UpdateJob(req entities.Jobs) error {
 func (comp *CompanyAdapter) TerminateEmployee(userID, companyID string) error {
 
 	query := "UPDATE company_members SET status_id = (SELECT id FROM member_statuses WHERE status = 'TERMINATED') WHERE member_id = $1 AND company_id = $2"
-	if err := comp.DB.Exec(query,userID,companyID).Error; err != nil {
+	if err := comp.DB.Exec(query, userID, companyID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (comp *CompanyAdapter) ToggleIsPayed(compID string, isPayed bool) error {
+
+	query := "UPDATE credentials SET is_payed = $1,next_payment_at = $2 WHERE company_id = $3"
+	if err := comp.DB.Exec(query, isPayed, time.Now().AddDate(0,1,0), compID).Error; err != nil {
 		return err
 	}
 

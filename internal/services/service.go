@@ -53,28 +53,28 @@ func NewCompanyServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, pr
 
 func (auth *CompanyServiceServer) RegisterCompany(ctx context.Context, req *companypb.RegisterCompanyRequest) (*companypb.CompanyResponce, error) {
 
-	url := fmt.Sprintf("http://localhost:50007/transaction/verify?transactionID=%s&&userID=%s", req.TransactionID, req.OwnerID)
-	resStages, err := http.Get(url)
-	if err != nil {
-		helpers.PrintErr(err, "errro happened at calling http method")
-		return nil, err
-	}
+	// url := fmt.Sprintf("http://localhost:50007/transaction/verify?transactionID=%s&&userID=%s", req.TransactionID, req.OwnerID)
+	// resStages, err := http.Get(url)
+	// if err != nil {
+	// 	helpers.PrintErr(err, "errro happened at calling http method")
+	// 	return nil, err
+	// }
 
-	if resStages.StatusCode != 200 {
-		helpers.PrintErr(err, "errro happened at the http method")
-		return nil, errors.New("the user is not payed")
-	}
+	// if resStages.StatusCode != 200 {
+	// 	helpers.PrintErr(err, "errro happened at the http method")
+	// 	return nil, errors.New("the user is not payed")
+	// }
 
-	var ress entities.Responce
-	if err := json.NewDecoder(resStages.Body).Decode(&ress); err != nil {
-		helpers.PrintErr(err, "errro happened at decoding the json")
-		return nil, err
-	}
+	// var ress entities.Responce
+	// if err := json.NewDecoder(resStages.Body).Decode(&ress); err != nil {
+	// 	helpers.PrintErr(err, "errro happened at decoding the json")
+	// 	return nil, err
+	// }
 
-	if !ress.Data.(bool) {
-		helpers.PrintErr(err, "errro happened at decoding the json")
-		return nil, errors.New("the transaction or user id is not valid")
-	}
+	// if !ress.Data.(bool) {
+	// 	helpers.PrintErr(err, "errro happened at decoding the json")
+	// 	return nil, errors.New("the transaction or user id is not valid")
+	// }
 
 	res, err := auth.Usecase.RegisterCompany(entities.CompanyResUsecase{
 		CompCred: entities.Credentials{
@@ -1531,4 +1531,14 @@ func (comp *CompanyServiceServer) GetUserStat(ctx context.Context, req *companyp
 	return &companypb.GetUserStatRes{
 		IsAcceptable: true,
 	}, nil
+}
+
+func (comp *CompanyServiceServer) ToggleIsPayed(ctx context.Context, req *companypb.ToggleIsPayedReq) (*emptypb.Empty, error) {
+
+	if err := comp.Usecase.ToggleIsPayed(req.CompanyID, req.IsPayed); err != nil {
+		helpers.PrintErr(err, "error happened")
+		return nil, err
+	}
+
+	return &emptypb.Empty{}, nil
 }

@@ -819,3 +819,13 @@ func (comp *CompanyUseCases) TerminateEmployee(userID, companyID string) error {
 
 	return nil
 }
+
+func (comp *CompanyUseCases) ToggleIsPayed(compID string, isPayed bool) error {
+
+	if err := comp.Adapter.ToggleIsPayed(compID, isPayed); err != nil {
+		helpers.PrintErr(err, "errror happened")
+		return err
+	}
+
+	return nil
+}

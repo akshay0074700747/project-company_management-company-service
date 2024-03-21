@@ -71,4 +71,5 @@ type CompanyUsecaseInterfaces interface {
 	DeleteJob(string)(error)
 	UpdateJob(entities.Jobs)(error)
 	TerminateEmployee(string,string)(error)
+	ToggleIsPayed(string,bool)(error)
 }
