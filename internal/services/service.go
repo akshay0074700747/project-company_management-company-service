@@ -37,9 +37,9 @@ func NewCompanyServiceServer(usecase usecases.CompanyUsecaseInterfaces, addr, pr
 	userRes, _ := helpers.DialGrpc(addr)
 	projectRes, _ := helpers.DialGrpc(projectAddr)
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password set
-		DB:       0,                // Use default DB
+		Addr:     "host.docker.internal:6379",
+		Password: "",
+		DB:       0,
 	})
 	return &CompanyServiceServer{
 		Usecase:     usecase,
