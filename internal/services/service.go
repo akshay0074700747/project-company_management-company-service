@@ -111,7 +111,7 @@ func (auth *CompanyServiceServer) RegisterCompany(ctx context.Context, req *comp
 			helpers.PrintErr(err, "error happened at marshaling")
 		}
 		reader := bytes.NewReader(bytereq)
-		req, err := http.NewRequest("PATCH", "http://localhost:50007/transaction/update", reader)
+		req, err := http.NewRequest("PATCH", "http://payment-service:50007/transaction/update", reader)
 		if err != nil {
 			fmt.Println("failed to create HTTP request:", err)
 			return
